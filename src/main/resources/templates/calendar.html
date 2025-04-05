@@ -14,7 +14,13 @@
     <div class="month-switch">
         <form method="get" th:action="@{/calendar}">
             <label>Месяц:
-                <input type="number" name="month" min="1" max="12" th:value="${month}" />
+                <select name="month">
+                    <option th:each="entry : ${monthNames.entrySet()}"
+                            th:value="${entry.key}"
+                            th:selected="${entry.key} == ${month}"
+                            th:text="${entry.value}">
+                    </option>
+                </select>
             </label>
             <label>Год:
                 <input type="number" name="year" min="2020" max="2100" th:value="${year}" />
@@ -54,7 +60,6 @@
             </thead>
             <tbody>
             <tr th:each="record : ${records}">
-                <!-- record : AttendanceRecordDto -->
                 <td th:text="${record.id()}"></td>
                 <td th:text="${record.personName()}"></td>
                 <td th:text="${record.visitDate()}"></td>
@@ -62,7 +67,6 @@
                     <span th:text="${record.attended()} ? 'Да' : 'Нет'"></span>
                 </td>
                 <td>
-                    <!-- Кнопка "отметить присутствие", если attended = false -->
                     <form method="post" th:action="@{/calendar/check}">
                         <input type="hidden" name="recordId" th:value="${record.id()}" />
                         <button type="submit"
