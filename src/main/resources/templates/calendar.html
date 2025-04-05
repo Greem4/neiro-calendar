@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <title>NeiroCalendar</title>
+</head>
+<body>
+<h1>Календарь за [[${month}]]/[[${year}]]</h1>
+
+<form method="get" th:action="@{/calendar}">
+    <label>Месяц:
+        <input type="number" name="month" th:value="${month}"/>
+    </label>
+    <label>Год:
+        <input type="number" name="year" th:value="${year}"/>
+    </label>
+    <button type="submit">Показать</button>
+</form>
+
+<h2>Добавить запись</h2>
+<form method="post" th:action="@{/calendar/add}">
+    <label>Фамилия:
+        <input type="text" name="lastName"/>
+    </label>
+    <label>Дата:
+        <input type="date" name="date"/>
+    </label>
+    <button type="submit">Добавить</button>
+</form>
+
+<h2>Записи</h2>
+<table border="1">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Дата</th>
+        <th>Фамилия</th>
+        <th>Присутствие</th>
+        <th>Отметить</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="record : ${records}">
+        <td th:text="${record.id}"></td>
+        <td th:text="${record.date}"></td>
+        <td th:text="${record.lastName}"></td>
+        <td th:text="${record.attended} ? 'Да' : 'Нет'"></td>
+        <td>
+            <form method="post" th:action="@{/calendar/check}">
+                <input type="hidden" name="recordId" th:value="${record.id}"/>
+                <button type="submit" th:disabled="${record.attended}">Галочка</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>Итоговая сумма: [[${totalCost}]] руб.</h2>
+</body>
+</html>
