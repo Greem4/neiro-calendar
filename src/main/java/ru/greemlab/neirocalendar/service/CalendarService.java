@@ -58,6 +58,17 @@ public class CalendarService {
     }
 
     /**
+     * Отменить присутствие (attended = true) по ID
+     */
+    @Transactional
+    public void markAttendanceFalse(Long recordId) {
+        repository.findById(recordId).ifPresent(rec -> {
+            rec.setAttended(false);
+            repository.save(rec);
+        });
+    }
+
+    /**
      * Удалить запись по ID
      */
     @Transactional

@@ -49,16 +49,20 @@
                 <ul class="records">
                     <li th:each="record : ${cell.records()}"
                         th:classappend="${record.attended()} ? 'attended' : ''">
-                        <span th:text="${record.personName()}"></span>
-                        <span th:text="${record.attended()} ? ' (Да)' : ' (Нет)'"></span>
+                        <!-- Имя отображается крупнее и остаётся на месте -->
+                        <span class="record-name" th:text="${record.personName()}"></span>
+                        <span class="record-status" th:text="${record.attended()} ? ' (Да)' : ' (Нет)'"></span>
                         <div class="btn-group">
-                            <form method="post" th:action="@{/calendar/check}">
+                            <!-- Компактная кнопка для переключения состояния -->
+                            <form method="post" th:action="@{${record.attended()} ? '/calendar/uncheck' : '/calendar/check'}">
                                 <input type="hidden" name="recordId" th:value="${record.id()}" />
-                                <button type="submit" th:disabled="${record.attended()}">Отметить</button>
+                                <button type="submit" class="toggle-btn"
+                                        th:text="${record.attended()} ? 'Не был' : 'Был'"></button>
                             </form>
+                            <!-- Компактная кнопка удаления -->
                             <form method="post" th:action="@{/calendar/delete}">
                                 <input type="hidden" name="recordId" th:value="${record.id()}" />
-                                <button type="submit">Удалить</button>
+                                <button type="submit" class="delete-btn">✖</button>
                             </form>
                         </div>
                     </li>
@@ -68,7 +72,7 @@
                     <form method="post" th:action="@{/calendar/add}">
                         <input type="hidden" name="date" th:value="${cell.date()}"/>
                         <input type="text" name="personName" placeholder="Имя" required/>
-                        <button type="submit">Добавить</button>
+                        <button type="submit" class="add-btn">Добавить</button>
                     </form>
                 </div>
             </td>

@@ -107,6 +107,16 @@ public class CalendarController {
     }
 
     /**
+     * Отменить присутствие
+     */
+    @PostMapping("/uncheck")
+    public String unCheckAttendance(@RequestParam("recordId") Long recordId) {
+        log.info("Uncheck attendance for recordId={}", recordId);
+        calendarService.markAttendanceFalse(recordId);
+        return "redirect:/calendar";
+    }
+
+    /**
      * Удалить запись
      */
     @PostMapping("/delete")
