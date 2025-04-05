@@ -29,7 +29,7 @@ public class CalendarService {
      * Создать / обновить запись
      */
     @Transactional
-    public AttendanceRecordDto saveAttendance(AttendanceRecordDto dto) {
+    public void saveAttendance(AttendanceRecordDto dto) {
         AttendanceRecord entity;
         if (dto.id() != null) {
             // Если уже есть ID, найдём в БД, иначе создаём новый
@@ -43,7 +43,7 @@ public class CalendarService {
         entity.setAttended(dto.attended() != null ? dto.attended() : false);
 
         var saved = repository.save(entity);
-        return mapper.toDto(saved);
+        mapper.toDto(saved);
     }
 
     /**
@@ -93,7 +93,7 @@ public class CalendarService {
     @Transactional(readOnly = true)
     public int calculateTotalCost(LocalDate start, LocalDate end) {
         var list = getRecordsBetween(start, end);
-        int sum = 0;
+        var sum = 0;
         for (var record : list) {
             if (Boolean.TRUE.equals(record.attended())) {
                 sum += COST_PER_ATTENDANCE;

@@ -43,13 +43,13 @@ public class CalendarController {
             Model model
     ) {
         // Текущая дата по умолчанию
-        LocalDate now = LocalDate.now();
-        int selectedYear = (year == null) ? now.getYear() : year;
-        int selectedMonth = (month == null) ? now.getMonthValue() : month;
+        var now = LocalDate.now();
+        var selectedYear = (year == null) ? now.getYear() : year;
+        var selectedMonth = (month == null) ? now.getMonthValue() : month;
 
         // Границы выбранного месяца
-        LocalDate startOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
-        LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
+        var startOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
+        var endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
         // Получаем все записи за выбранный месяц
         var monthlyRecords = calendarService.getRecordsBetween(startOfMonth, endOfMonth);
@@ -64,8 +64,8 @@ public class CalendarController {
         List<List<DayCellDto>> weeks = buildCalendarGrid(selectedYear, selectedMonth, recordsByDate);
 
         // Итоговые расчёты
-        int totalCost = calendarService.calculateTotalCost(startOfMonth, endOfMonth);
-        long attendedCount = monthlyRecords.stream().filter(r -> Boolean.TRUE.equals(r.attended())).count();
+        var totalCost = calendarService.calculateTotalCost(startOfMonth, endOfMonth);
+        var attendedCount = monthlyRecords.stream().filter(r -> Boolean.TRUE.equals(r.attended())).count();
 
         // Заполняем модель атрибутами для шаблона
         model.addAttribute("year", selectedYear);
@@ -107,7 +107,7 @@ public class CalendarController {
     }
 
     /**
-     * Отменить присутствие
+     * Отменить отсутствие
      */
     @PostMapping("/uncheck")
     public String unCheckAttendance(@RequestParam("recordId") Long recordId) {
@@ -136,15 +136,15 @@ public class CalendarController {
             Map<LocalDate, List<AttendanceRecordDto>> recordsMap
     ) {
         List<List<DayCellDto>> result = new ArrayList<>();
-        LocalDate firstOfMonth = LocalDate.of(year, month, 1);
-        int firstDayDow = firstOfMonth.getDayOfWeek().getValue(); // ISO-8601: Пн=1 ... Вс=7
-        LocalDate start = firstOfMonth.minusDays(firstDayDow - 1);
-        int WEEKS_TO_SHOW = 6;
-        LocalDate current = start;
+        var firstOfMonth = LocalDate.of(year, month, 1);
+        var firstDayDow = firstOfMonth.getDayOfWeek().getValue(); // ISO-8601: Пн=1 ... Вс=7
+        var start = firstOfMonth.minusDays(firstDayDow - 1);
+        var WEEKS_TO_SHOW = 6;
+        var current = start;
         for (int w = 0; w < WEEKS_TO_SHOW; w++) {
             List<DayCellDto> weekRow = new ArrayList<>(7);
             for (int d = 0; d < 7; d++) {
-                boolean inCurrentMonth = (current.getYear() == year && current.getMonthValue() == month);
+                var inCurrentMonth = (current.getYear() == year && current.getMonthValue() == month);
                 var recs = recordsMap.getOrDefault(current, List.of());
                 weekRow.add(new DayCellDto(current, inCurrentMonth, recs));
                 current = current.plusDays(1);
@@ -160,7 +160,7 @@ public class CalendarController {
     private static LinkedHashMap<Integer, String> getMonthNames() {
         LinkedHashMap<Integer, String> map = new LinkedHashMap<>();
         for (int i = 1; i <= 12; i++) {
-            String name = Month.of(i).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru", "RU"));
+            var name = Month.of(i).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru", "RU"));
             name = name.substring(0, 1).toUpperCase() + name.substring(1);
             map.put(i, name);
         }

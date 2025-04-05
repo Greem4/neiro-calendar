@@ -66,6 +66,7 @@ h1 {
 }
 
 .records li {
+    min-height: 30px;
     margin-bottom: 8px;
     padding: 5px;
     border: 1px solid #ddd;
@@ -105,7 +106,9 @@ h1 {
     background-color: #4CAF50;
     color: #fff;
     cursor: pointer;
+    width: 80px; /* Фиксированная ширина для стабильного размещения */
 }
+
 
 .toggle-btn:hover {
     opacity: 0.9;
@@ -155,3 +158,4 @@ h1 {
 .summary {
     text-align: center;
 }
+
