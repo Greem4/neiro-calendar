@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 /**
- * Основная сущность, отражающая запись посещения.
+ * Сущность для таблицы attendance_records
  */
 @Entity
 @Getter

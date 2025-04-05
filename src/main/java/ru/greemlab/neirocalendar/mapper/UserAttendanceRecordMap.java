@@ -11,7 +11,7 @@ import ru.greemlab.neirocalendar.domain.entity.AttendanceRecord;
 @Component
 public class UserAttendanceRecordMap {
 
-    public AttendanceRecordDto toDtoAttendance(AttendanceRecord entity) {
+    public AttendanceRecordDto toDto(AttendanceRecord entity) {
         return new AttendanceRecordDto(
                 entity.getId(),
                 entity.getPersonName(),

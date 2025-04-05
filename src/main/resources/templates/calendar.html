@@ -1,89 +1,93 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>NeiroCalendar</title>
-    <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
 
-<div class="container">
-    <h1>Посещение</h1>
-    <p>Просмотр записей за <strong>[[${month}]]/[[${year}]]</strong></p>
+<h1>Календарь занятий</h1>
 
-    <div class="month-switch">
-        <form method="get" th:action="@{/calendar}">
-            <label>Месяц:
-                <select name="month">
-                    <option th:each="entry : ${monthNames.entrySet()}"
-                            th:value="${entry.key}"
-                            th:selected="${entry.key} == ${month}"
-                            th:text="${entry.value}">
-                    </option>
-                </select>
-            </label>
-            <label>Год:
-                <input type="number" name="year" min="2020" max="2100" th:value="${year}" />
-            </label>
-            <button type="submit">Показать</button>
-        </form>
-    </div>
+<!-- Переключение месяц/год -->
+<form method="get" th:action="@{/calendar}">
+    <label>Месяц:
+        <select name="month">
+            <option th:each="entry : ${monthNames.entrySet()}"
+                    th:value="${entry.key}"
+                    th:selected="${entry.key} == ${month}"
+                    th:text="${entry.value}">
+            </option>
+        </select>
+    </label>
+    <label>Год:
+        <input type="number" name="year" min="2020" max="2100"
+               th:value="${year}" />
+    </label>
+    <button type="submit">Показать</button>
+</form>
 
-    <section class="add-section">
-        <h2>Добавить новую запись</h2>
-        <form method="post" th:action="@{/calendar/add}">
-            <div>
-                <label>Имя / Фамилия:
-                    <input type="text" name="personName" required />
-                </label>
-            </div>
-            <div>
-                <label>Дата:
-                    <input type="date" name="date" required />
-                </label>
-            </div>
-            <button type="submit">Добавить</button>
-        </form>
-    </section>
+<!-- Показываем текущий выбор -->
+<p>Выбран: <strong>[[${month}]]/[[${year}]]</strong></p>
 
-    <section class="records-section">
-        <h2>Список записей за месяц</h2>
-        <table>
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>ФИО</th>
-                <th>Дата</th>
-                <th>Присутствие</th>
-                <th>Действие</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="record : ${records}">
-                <td th:text="${record.id()}"></td>
-                <td th:text="${record.personName()}"></td>
-                <td th:text="${record.visitDate()}"></td>
-                <td>
-                    <span th:text="${record.attended()} ? 'Да' : 'Нет'"></span>
-                </td>
-                <td>
-                    <form method="post" th:action="@{/calendar/check}">
+<!-- Таблица 7 колонок (пн..вс) -->
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+    <tr>
+        <th th:each="wd : ${weekDays}" th:text="${wd}">Пн</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- weeks: список из 5-6 "строк". week: список из 7 DayCellDto -->
+    <tr th:each="week : ${weeks}">
+        <td th:each="cell : ${week}"
+            th:classappend="${cell.inCurrentMonth()} ? '' : 'outside'">
+
+            <!-- Число дня -->
+            <strong th:text="${cell.date().getDayOfMonth()}"></strong>
+
+            <!-- Список записей, если есть -->
+            <ul>
+                <li th:each="record : ${cell.records()}">
+                    <span th:text="${record.personName()}"></span>
+                    <span th:text="${record.attended()} ? ' (Да)' : ' (Нет)'"></span>
+
+                    <!-- Кнопка "Отметить присутствие" -->
+                    <form method="post" th:action="@{/calendar/check}" style="display:inline;">
                         <input type="hidden" name="recordId" th:value="${record.id()}" />
-                        <button type="submit"
-                                th:disabled="${record.attended()}">
-                            Отметить
-                        </button>
+                        <button type="submit" th:disabled="${record.attended()}">Отметить</button>
                     </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </section>
 
-    <div class="total">
-        <h3>Итоговая сумма за месяц: <span th:text="${totalCost}"></span> руб.</h3>
-    </div>
-</div>
+                    <!-- Кнопка "Удалить" -->
+                    <form method="post" th:action="@{/calendar/delete}" style="display:inline;">
+                        <input type="hidden" name="recordId" th:value="${record.id()}" />
+                        <button type="submit">Удалить</button>
+                    </form>
+                </li>
+            </ul>
+
+            <!-- Добавлять записи только если день входит в ALLOWED_DAYS -->
+            <div th:if="${T(java.util.Set).of(
+                T(java.time.DayOfWeek).TUESDAY,
+                T(java.time.DayOfWeek).THURSDAY,
+                T(java.time.DayOfWeek).FRIDAY,
+                T(java.time.DayOfWeek).SUNDAY
+            ).contains(cell.date().getDayOfWeek())}">
+                <form method="post" th:action="@{/calendar/add}">
+                    <input type="hidden" name="date" th:value="${cell.date()}"/>
+                    <input type="text" name="personName" placeholder="Имя" required/>
+                    <button type="submit">Добавить</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<hr/>
+
+<!-- Итоги -->
+<p>Отмеченных посещений: <strong th:text="${attendedCount}">0</strong></p>
+<p>Итоговая сумма: <strong th:text="${totalCost}">0</strong> руб.</p>
 
 </body>
 </html>

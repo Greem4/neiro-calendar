@@ -5,23 +5,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import ru.greemlab.neirocalendar.domain.dto.AttendanceRecordDto;
+import ru.greemlab.neirocalendar.domain.dto.DayCellDto;
 import ru.greemlab.neirocalendar.service.CalendarService;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
- * MVC-контроллер: отвечает за отображение календаря (Thymeleaf).
- * Принимает запросы, вызывает сервис, кладёт данные в модель, возвращает имя шаблона.
+ * MVC-контроллер для отображения полного календаря на выбранный месяц.
+ * В нужные дни (Вт, Чт, Пт, Вс) можно добавлять/отмечать/удалять занятия.
  */
 @Slf4j
 @Controller
@@ -31,108 +28,149 @@ public class CalendarController {
 
     private final CalendarService calendarService;
 
-    /**
-     * Показывает календарь за указанный месяц/год (по умолчанию - текущие).
-     *
-     * @param model - модель для Thymeleaf
-     * @param year  - год (необязательный)
-     * @param month - месяц (необязательный)
-     * @return имя шаблона "calendar"
-     */
+    // Какие дни разрешены для записи занятий
+    private static final Set<DayOfWeek> ALLOWED_DAYS = Set.of(
+            DayOfWeek.TUESDAY,
+            DayOfWeek.THURSDAY,
+            DayOfWeek.FRIDAY,
+            DayOfWeek.SUNDAY
+    );
+
     @GetMapping
     public String showCalendar(
-            Model model,
             @RequestParam(value = "year", required = false) Integer year,
-            @RequestParam(value = "month", required = false) Integer month
+            @RequestParam(value = "month", required = false) Integer month,
+            Model model
     ) {
-        var today = LocalDate.now();
-        var currentYear = (year == null) ? today.getYear() : year;
-        var currentMonth = (month == null) ? today.getMonthValue() : month;
+        // Текущая дата по умолчанию (если ничего не передали)
+        LocalDate now = LocalDate.now();
+        int selectedYear = (year == null) ? now.getYear() : year;
+        int selectedMonth = (month == null) ? now.getMonthValue() : month;
 
-        // Вычисляем границы месяца
-        var startOfMonth = LocalDate.of(currentYear, currentMonth, 1);
-        var endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.getDayOfMonth());
+        // Границы выбранного месяца
+        LocalDate startOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
+        LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
-        // Получаем все записи через сервис
+        // Все записи за месяц
         var monthlyRecords = calendarService.getRecordsBetween(startOfMonth, endOfMonth);
-        // Сумма за месяц
-        var totalCost = calendarService.calculateTotalCost(startOfMonth, endOfMonth);
 
-        // Названия месяцев
-        var monthNames = getMonthNames();
+        // Группируем их по дате для удобного доступа
+        Map<LocalDate, List<AttendanceRecordDto>> recordsByDate = new HashMap<>();
+        for (var rec : monthlyRecords) {
+            recordsByDate
+                    .computeIfAbsent(rec.visitDate(), k -> new ArrayList<>())
+                    .add(rec);
+        }
 
-        // Кладём данные в модель
-        model.addAttribute("year", currentYear);
-        model.addAttribute("month", currentMonth);
-        model.addAttribute("records", monthlyRecords);
+        // Строим "сетку" календаря (5-6 строк, 7 столбцов)
+        List<List<DayCellDto>> weeks = buildCalendarGrid(selectedYear, selectedMonth, recordsByDate);
+
+        // Итоги
+        int totalCost = calendarService.calculateTotalCost(startOfMonth, endOfMonth);
+        long attendedCount = monthlyRecords.stream()
+                .filter(r -> Boolean.TRUE.equals(r.attended()))
+                .count();
+
+        model.addAttribute("year", selectedYear);
+        model.addAttribute("month", selectedMonth);
+        model.addAttribute("weeks", weeks);
         model.addAttribute("totalCost", totalCost);
+        model.addAttribute("attendedCount", attendedCount);
+
+        // Для выпадающего списка
+        var monthNames = getMonthNames();
         model.addAttribute("monthNames", monthNames);
+
+        // Заголовки для таблицы (Пн, Вт, Ср, Чт, Пт, Сб, Вс)
+        model.addAttribute("weekDays", List.of("Пн","Вт","Ср","Чт","Пт","Сб","Вс"));
 
         return "calendar";
     }
 
     /**
-     * Обработка формы: добавляем новую запись с attended = false.
-     *
-     * @param personName - имя/фамилия человека
-     * @param date       - дата визита
+     * Добавление новой записи (attended = false)
      */
     @PostMapping("/add")
     public String addAttendance(
             @RequestParam("personName") String personName,
-            @RequestParam("date") @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate date
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ) {
-        log.info("Received request to add attendance for person={} date={}", personName, date);
+        log.info("Add attendance: personName={}, date={}", personName, date);
         var dto = new AttendanceRecordDto(null, personName, date, false);
         calendarService.saveAttendance(dto);
         return "redirect:/calendar";
     }
 
     /**
-     * Проставить "галочку" (attended = true) для записи с заданным ID.
-     * @param recordId - идентификатор записи
+     * Отметить присутствие
      */
     @PostMapping("/check")
     public String checkAttendance(@RequestParam("recordId") Long recordId) {
-        log.info("Checking attendance for recordId={}", recordId);
-
-        // На практике можно было бы сделать calendarService.findById(recordId).
-        // Пока используем вариант, где ищем запись среди текущего месяца.
-        LocalDate now = LocalDate.now();
-        LocalDate startOfMonth = now.withDayOfMonth(1);
-        LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
-
-        // Ищем нужную запись (DTO) среди списка за месяц.
-        AttendanceRecordDto dto = calendarService.getRecordsBetween(startOfMonth, endOfMonth)
-                .stream()
-                .filter(r -> r.id().equals(recordId))
-                .findFirst()
-                .orElse(null);
-
-        if (dto != null) {
-            // "Переключаем" attended в true
-            AttendanceRecordDto updatedDto = new AttendanceRecordDto(
-                    dto.id(),
-                    dto.personName(),
-                    dto.visitDate(),
-                    true
-            );
-            calendarService.saveAttendance(updatedDto);
-        } else {
-            log.warn("Record with ID={} not found in the current month range.", recordId);
-        }
-
+        log.info("Check attendance for recordId={}", recordId);
+        calendarService.markAttendanceTrue(recordId);
         return "redirect:/calendar";
     }
 
-    private static LinkedHashMap<Object, Object> getMonthNames() {
-        var monthNames = new LinkedHashMap<>();
-        for (int i = 1; i <= 12; i++) {
-            var name = Month.of(i)
-                    .getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru"));
-            name = name.substring(0, 1).toUpperCase() + name.substring(1);
-            monthNames.put(i, name);
+    /**
+     * Удалить запись
+     */
+    @PostMapping("/delete")
+    public String deleteAttendance(@RequestParam("recordId") Long recordId) {
+        log.info("Delete attendance recordId={}", recordId);
+        calendarService.deleteAttendance(recordId);
+        return "redirect:/calendar";
+    }
+
+    /**
+     * Формируем 2D-список (недели -> дни).
+     * Каждая "неделя" - это список из 7 ячеек (DayCellDto).
+     * При этом некоторые ячейки могут относиться к предыдущему/следующему месяцу.
+     */
+    private List<List<DayCellDto>> buildCalendarGrid(
+            int year, int month,
+            Map<LocalDate, List<AttendanceRecordDto>> recordsMap
+    ) {
+        List<List<DayCellDto>> result = new ArrayList<>();
+
+        LocalDate firstOfMonth = LocalDate.of(year, month, 1);
+        // ISO-8601: Понедельник=1, ... Воскресенье=7
+        int firstDayDow = firstOfMonth.getDayOfWeek().getValue();
+        // Находим дату, с которой начнём (т.е. понедельник первой недели)
+        // если месяц начался во вторник (2), то сместимся назад на (2-1)=1 день.
+        LocalDate start = firstOfMonth.minusDays(firstDayDow - 1);
+
+        // Макс. 6 строк (недель), чтобы вместить месяц
+        int WEEKS_TO_SHOW = 6;
+        int DAYS_IN_GRID = WEEKS_TO_SHOW * 7; // 42 дня макс.
+
+        LocalDate current = start;
+        for (int w = 0; w < WEEKS_TO_SHOW; w++) {
+            List<DayCellDto> weekRow = new ArrayList<>(7);
+            for (int d = 0; d < 7; d++) {
+                boolean inCurrentMonth = (current.getYear() == year && current.getMonthValue() == month);
+                // Найдём записи для current
+                var recs = recordsMap.getOrDefault(current, List.of());
+                var cell = new DayCellDto(current, inCurrentMonth, recs);
+                weekRow.add(cell);
+                current = current.plusDays(1);
+            }
+            result.add(weekRow);
         }
-        return monthNames;
+
+        return result;
+    }
+
+    /**
+     * Мапа (1->"Январь", 2->"Февраль", ...)
+     */
+    private static LinkedHashMap<Integer, String> getMonthNames() {
+        var map = new LinkedHashMap<Integer, String>();
+        for (int i = 1; i <= 12; i++) {
+            var name = Month.of(i).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru", "RU"));
+            // Первая буква с большой
+            name = name.substring(0, 1).toUpperCase() + name.substring(1);
+            map.put(i, name);
+        }
+        return map;
     }
 }
