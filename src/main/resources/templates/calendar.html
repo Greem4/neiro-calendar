@@ -3,91 +3,85 @@
 <head>
     <meta charset="UTF-8"/>
     <title>NeiroCalendar</title>
+    <link rel="stylesheet" th:href="@{/css/calendar.css}" />
 </head>
 <body>
+<div class="container">
+    <h1>Календарь занятий</h1>
 
-<h1>Календарь занятий</h1>
+    <!-- Форма выбора месяца и года -->
+    <form method="get" th:action="@{/calendar}" class="form-switch">
+        <label>Месяц:
+            <select name="month">
+                <option th:each="entry : ${monthNames.entrySet()}"
+                        th:value="${entry.key}"
+                        th:selected="${entry.key} == ${month}"
+                        th:text="${entry.value}">
+                </option>
+            </select>
+        </label>
+        <label>Год:
+            <input type="number" name="year" min="2020" max="2100" th:value="${year}" />
+        </label>
+        <button type="submit">Показать</button>
+    </form>
 
-<!-- Переключение месяц/год -->
-<form method="get" th:action="@{/calendar}">
-    <label>Месяц:
-        <select name="month">
-            <option th:each="entry : ${monthNames.entrySet()}"
-                    th:value="${entry.key}"
-                    th:selected="${entry.key} == ${month}"
-                    th:text="${entry.value}">
-            </option>
-        </select>
-    </label>
-    <label>Год:
-        <input type="number" name="year" min="2020" max="2100"
-               th:value="${year}" />
-    </label>
-    <button type="submit">Показать</button>
-</form>
+    <p>Выбран: <strong>[[${month}]]/[[${year}]]</strong></p>
 
-<!-- Показываем текущий выбор -->
-<p>Выбран: <strong>[[${month}]]/[[${year}]]</strong></p>
+    <!-- Таблица календаря, показываем только разрешённые дни -->
+    <table class="calendar-table">
+        <thead>
+        <tr>
+            <th>Вт</th>
+            <th>Чт</th>
+            <th>Пт</th>
+            <th>Вс</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="week : ${weeks}">
+            <td th:each="cell : ${week}"
+                th:if="${#lists.contains(allowedDays, cell.date().getDayOfWeek())}"
+                th:classappend="${cell.inCurrentMonth()} ? 'current-month' : 'outside'">
 
-<!-- Таблица 7 колонок (пн..вс) -->
-<table border="1" cellpadding="8" cellspacing="0">
-    <thead>
-    <tr>
-        <th th:each="wd : ${weekDays}" th:text="${wd}">Пн</th>
-    </tr>
-    </thead>
-    <tbody>
-    <!-- weeks: список из 5-6 "строк". week: список из 7 DayCellDto -->
-    <tr th:each="week : ${weeks}">
-        <td th:each="cell : ${week}"
-            th:classappend="${cell.inCurrentMonth()} ? '' : 'outside'">
+                <div class="day-number" th:text="${cell.date().getDayOfMonth()}"></div>
 
-            <!-- Число дня -->
-            <strong th:text="${cell.date().getDayOfMonth()}"></strong>
+                <ul class="records">
+                    <li th:each="record : ${cell.records()}"
+                        th:classappend="${record.attended()} ? 'attended' : ''">
+                        <span th:text="${record.personName()}"></span>
+                        <span th:text="${record.attended()} ? ' (Да)' : ' (Нет)'"></span>
+                        <div class="btn-group">
+                            <form method="post" th:action="@{/calendar/check}">
+                                <input type="hidden" name="recordId" th:value="${record.id()}" />
+                                <button type="submit" th:disabled="${record.attended()}">Отметить</button>
+                            </form>
+                            <form method="post" th:action="@{/calendar/delete}">
+                                <input type="hidden" name="recordId" th:value="${record.id()}" />
+                                <button type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </li>
+                </ul>
 
-            <!-- Список записей, если есть -->
-            <ul>
-                <li th:each="record : ${cell.records()}">
-                    <span th:text="${record.personName()}"></span>
-                    <span th:text="${record.attended()} ? ' (Да)' : ' (Нет)'"></span>
-
-                    <!-- Кнопка "Отметить присутствие" -->
-                    <form method="post" th:action="@{/calendar/check}" style="display:inline;">
-                        <input type="hidden" name="recordId" th:value="${record.id()}" />
-                        <button type="submit" th:disabled="${record.attended()}">Отметить</button>
+                <div class="add-form">
+                    <form method="post" th:action="@{/calendar/add}">
+                        <input type="hidden" name="date" th:value="${cell.date()}"/>
+                        <input type="text" name="personName" placeholder="Имя" required/>
+                        <button type="submit">Добавить</button>
                     </form>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
 
-                    <!-- Кнопка "Удалить" -->
-                    <form method="post" th:action="@{/calendar/delete}" style="display:inline;">
-                        <input type="hidden" name="recordId" th:value="${record.id()}" />
-                        <button type="submit">Удалить</button>
-                    </form>
-                </li>
-            </ul>
+    <hr/>
 
-            <!-- Добавлять записи только если день входит в ALLOWED_DAYS -->
-            <div th:if="${T(java.util.Set).of(
-                T(java.time.DayOfWeek).TUESDAY,
-                T(java.time.DayOfWeek).THURSDAY,
-                T(java.time.DayOfWeek).FRIDAY,
-                T(java.time.DayOfWeek).SUNDAY
-            ).contains(cell.date().getDayOfWeek())}">
-                <form method="post" th:action="@{/calendar/add}">
-                    <input type="hidden" name="date" th:value="${cell.date()}"/>
-                    <input type="text" name="personName" placeholder="Имя" required/>
-                    <button type="submit">Добавить</button>
-                </form>
-            </div>
-        </td>
-    </tr>
-    </tbody>
-</table>
-
-<hr/>
-
-<!-- Итоги -->
-<p>Отмеченных посещений: <strong th:text="${attendedCount}">0</strong></p>
-<p>Итоговая сумма: <strong th:text="${totalCost}">0</strong> руб.</p>
-
+    <div class="summary">
+        <p>Отмеченных посещений: <strong th:text="${attendedCount}">0</strong></p>
+        <p>Итоговая сумма: <strong th:text="${totalCost}">0</strong> руб.</p>
+    </div>
+</div>
 </body>
 </html>

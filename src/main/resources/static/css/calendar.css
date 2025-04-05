@@ -1,0 +1,126 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+/* Стили для формы выбора месяца/года */
+.form-switch {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* Таблица календаря */
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.calendar-table th,
+.calendar-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+    vertical-align: top;
+}
+
+/* Выделяем ячейки текущего месяца */
+.current-month {
+    background-color: #e8f4ff;
+}
+
+/* Ячейки вне текущего месяца можно сделать светлее или скрыть */
+.outside {
+    background-color: #f9f9f9;
+}
+
+/* Номер дня */
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Стили для списка записей */
+.records {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.records li {
+    margin-bottom: 8px;
+    position: relative;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Выделяем посещённые занятия */
+.records li.attended {
+    background-color: #d1ffd1;
+    border-color: #a3e6a3;
+}
+
+/* Группа кнопок */
+.btn-group {
+    margin-top: 5px;
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.btn-group button {
+    padding: 5px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+/* Кнопки действия */
+.btn-group button:hover:not(:disabled) {
+    opacity: 0.8;
+}
+
+.btn-group button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Форма добавления записи */
+.add-form {
+    margin-top: 10px;
+}
+
+.add-form input[type="text"] {
+    padding: 5px;
+    width: 70%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.add-form button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+}

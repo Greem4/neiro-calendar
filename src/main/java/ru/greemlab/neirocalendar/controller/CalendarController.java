@@ -28,7 +28,7 @@ public class CalendarController {
 
     private final CalendarService calendarService;
 
-    // Какие дни разрешены для записи занятий
+    // Константа с разрешёнными днями для записи занятий
     private static final Set<DayOfWeek> ALLOWED_DAYS = Set.of(
             DayOfWeek.TUESDAY,
             DayOfWeek.THURSDAY,
@@ -42,7 +42,7 @@ public class CalendarController {
             @RequestParam(value = "month", required = false) Integer month,
             Model model
     ) {
-        // Текущая дата по умолчанию (если ничего не передали)
+        // Текущая дата по умолчанию
         LocalDate now = LocalDate.now();
         int selectedYear = (year == null) ? now.getYear() : year;
         int selectedMonth = (month == null) ? now.getMonthValue() : month;
@@ -51,38 +51,33 @@ public class CalendarController {
         LocalDate startOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
-        // Все записи за месяц
+        // Получаем все записи за выбранный месяц
         var monthlyRecords = calendarService.getRecordsBetween(startOfMonth, endOfMonth);
 
-        // Группируем их по дате для удобного доступа
+        // Группируем записи по датам
         Map<LocalDate, List<AttendanceRecordDto>> recordsByDate = new HashMap<>();
         for (var rec : monthlyRecords) {
-            recordsByDate
-                    .computeIfAbsent(rec.visitDate(), k -> new ArrayList<>())
-                    .add(rec);
+            recordsByDate.computeIfAbsent(rec.visitDate(), k -> new ArrayList<>()).add(rec);
         }
 
-        // Строим "сетку" календаря (5-6 строк, 7 столбцов)
+        // Строим сетку календаря (максимум 6 недель, 7 дней в неделе)
         List<List<DayCellDto>> weeks = buildCalendarGrid(selectedYear, selectedMonth, recordsByDate);
 
-        // Итоги
+        // Итоговые расчёты
         int totalCost = calendarService.calculateTotalCost(startOfMonth, endOfMonth);
-        long attendedCount = monthlyRecords.stream()
-                .filter(r -> Boolean.TRUE.equals(r.attended()))
-                .count();
+        long attendedCount = monthlyRecords.stream().filter(r -> Boolean.TRUE.equals(r.attended())).count();
 
+        // Заполняем модель атрибутами для шаблона
         model.addAttribute("year", selectedYear);
         model.addAttribute("month", selectedMonth);
         model.addAttribute("weeks", weeks);
         model.addAttribute("totalCost", totalCost);
         model.addAttribute("attendedCount", attendedCount);
-
-        // Для выпадающего списка
-        var monthNames = getMonthNames();
-        model.addAttribute("monthNames", monthNames);
-
-        // Заголовки для таблицы (Пн, Вт, Ср, Чт, Пт, Сб, Вс)
-        model.addAttribute("weekDays", List.of("Пн","Вт","Ср","Чт","Пт","Сб","Вс"));
+        model.addAttribute("monthNames", getMonthNames());
+        // Атрибут для фильтрации разрешённых дней в шаблоне
+        model.addAttribute("allowedDays", ALLOWED_DAYS);
+        // Заголовки для таблицы (только разрешённые дни)
+        model.addAttribute("weekDays", List.of("Вт", "Чт", "Пт", "Вс"));
 
         return "calendar";
     }
@@ -123,51 +118,39 @@ public class CalendarController {
 
     /**
      * Формируем 2D-список (недели -> дни).
-     * Каждая "неделя" - это список из 7 ячеек (DayCellDto).
-     * При этом некоторые ячейки могут относиться к предыдущему/следующему месяцу.
+     * Каждая "неделя" представлена списком из 7 ячеек (DayCellDto).
+     * Некоторые ячейки могут относиться к предыдущему/следующему месяцу.
      */
     private List<List<DayCellDto>> buildCalendarGrid(
             int year, int month,
             Map<LocalDate, List<AttendanceRecordDto>> recordsMap
     ) {
         List<List<DayCellDto>> result = new ArrayList<>();
-
         LocalDate firstOfMonth = LocalDate.of(year, month, 1);
-        // ISO-8601: Понедельник=1, ... Воскресенье=7
-        int firstDayDow = firstOfMonth.getDayOfWeek().getValue();
-        // Находим дату, с которой начнём (т.е. понедельник первой недели)
-        // если месяц начался во вторник (2), то сместимся назад на (2-1)=1 день.
+        int firstDayDow = firstOfMonth.getDayOfWeek().getValue(); // ISO-8601: Пн=1 ... Вс=7
         LocalDate start = firstOfMonth.minusDays(firstDayDow - 1);
-
-        // Макс. 6 строк (недель), чтобы вместить месяц
         int WEEKS_TO_SHOW = 6;
-        int DAYS_IN_GRID = WEEKS_TO_SHOW * 7; // 42 дня макс.
-
         LocalDate current = start;
         for (int w = 0; w < WEEKS_TO_SHOW; w++) {
             List<DayCellDto> weekRow = new ArrayList<>(7);
             for (int d = 0; d < 7; d++) {
                 boolean inCurrentMonth = (current.getYear() == year && current.getMonthValue() == month);
-                // Найдём записи для current
                 var recs = recordsMap.getOrDefault(current, List.of());
-                var cell = new DayCellDto(current, inCurrentMonth, recs);
-                weekRow.add(cell);
+                weekRow.add(new DayCellDto(current, inCurrentMonth, recs));
                 current = current.plusDays(1);
             }
             result.add(weekRow);
         }
-
         return result;
     }
 
     /**
-     * Мапа (1->"Январь", 2->"Февраль", ...)
+     * Возвращает отображения месяцев (1 -> "Январь", 2 -> "Февраль", ...)
      */
     private static LinkedHashMap<Integer, String> getMonthNames() {
-        var map = new LinkedHashMap<Integer, String>();
+        LinkedHashMap<Integer, String> map = new LinkedHashMap<>();
         for (int i = 1; i <= 12; i++) {
-            var name = Month.of(i).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru", "RU"));
-            // Первая буква с большой
+            String name = Month.of(i).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru", "RU"));
             name = name.substring(0, 1).toUpperCase() + name.substring(1);
             map.put(i, name);
         }
