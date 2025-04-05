@@ -1,59 +1,85 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
+    <meta charset="UTF-8" />
     <title>NeiroCalendar</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
-<h1>Календарь за [[${month}]]/[[${year}]]</h1>
 
-<form method="get" th:action="@{/calendar}">
-    <label>Месяц:
-        <input type="number" name="month" th:value="${month}"/>
-    </label>
-    <label>Год:
-        <input type="number" name="year" th:value="${year}"/>
-    </label>
-    <button type="submit">Показать</button>
-</form>
+<div class="container">
+    <h1>Посещение</h1>
+    <p>Просмотр записей за <strong>[[${month}]]/[[${year}]]</strong></p>
 
-<h2>Добавить запись</h2>
-<form method="post" th:action="@{/calendar/add}">
-    <label>Фамилия:
-        <input type="text" name="lastName"/>
-    </label>
-    <label>Дата:
-        <input type="date" name="date"/>
-    </label>
-    <button type="submit">Добавить</button>
-</form>
+    <div class="month-switch">
+        <form method="get" th:action="@{/calendar}">
+            <label>Месяц:
+                <input type="number" name="month" min="1" max="12" th:value="${month}" />
+            </label>
+            <label>Год:
+                <input type="number" name="year" min="2020" max="2100" th:value="${year}" />
+            </label>
+            <button type="submit">Показать</button>
+        </form>
+    </div>
 
-<h2>Записи</h2>
-<table border="1">
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Дата</th>
-        <th>Фамилия</th>
-        <th>Присутствие</th>
-        <th>Отметить</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="record : ${records}">
-        <td th:text="${record.id}"></td>
-        <td th:text="${record.date}"></td>
-        <td th:text="${record.lastName}"></td>
-        <td th:text="${record.attended} ? 'Да' : 'Нет'"></td>
-        <td>
-            <form method="post" th:action="@{/calendar/check}">
-                <input type="hidden" name="recordId" th:value="${record.id}"/>
-                <button type="submit" th:disabled="${record.attended}">Галочка</button>
-            </form>
-        </td>
-    </tr>
-    </tbody>
-</table>
+    <section class="add-section">
+        <h2>Добавить новую запись</h2>
+        <form method="post" th:action="@{/calendar/add}">
+            <div>
+                <label>Имя / Фамилия:
+                    <input type="text" name="personName" required />
+                </label>
+            </div>
+            <div>
+                <label>Дата:
+                    <input type="date" name="date" required />
+                </label>
+            </div>
+            <button type="submit">Добавить</button>
+        </form>
+    </section>
 
-<h2>Итоговая сумма: [[${totalCost}]] руб.</h2>
+    <section class="records-section">
+        <h2>Список записей за месяц</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>ФИО</th>
+                <th>Дата</th>
+                <th>Присутствие</th>
+                <th>Действие</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="record : ${records}">
+                <!-- record : AttendanceRecordDto -->
+                <td th:text="${record.id()}"></td>
+                <td th:text="${record.personName()}"></td>
+                <td th:text="${record.visitDate()}"></td>
+                <td>
+                    <span th:text="${record.attended()} ? 'Да' : 'Нет'"></span>
+                </td>
+                <td>
+                    <!-- Кнопка "отметить присутствие", если attended = false -->
+                    <form method="post" th:action="@{/calendar/check}">
+                        <input type="hidden" name="recordId" th:value="${record.id()}" />
+                        <button type="submit"
+                                th:disabled="${record.attended()}">
+                            Отметить
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <div class="total">
+        <h3>Итоговая сумма за месяц: <span th:text="${totalCost}"></span> руб.</h3>
+    </div>
+</div>
+
 </body>
 </html>
