@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
 
   liquibase:
@@ -18,6 +18,10 @@ spring:
 
   config:
     import: optional:file:.env[.properties]
+
+  output:
+    ansi:
+      enabled: always
 
 logging:
   config: classpath:logback-spring.xml
