@@ -49,6 +49,7 @@ public class CalendarRestController extends AbstractCalendarController {
                 .year(calendarData.year())
                 .month(calendarData.month())
                 .weeks(calendarData.weeks())
+                .totalCost(calendarData.totalCost())
                 .attendedCount(calendarData.attendedCount())
                 .monthNames(getMonthNames())
                 .allowedDays(ALLOWED_DAYS)
