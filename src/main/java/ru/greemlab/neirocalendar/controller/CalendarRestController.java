@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.greemlab.neirocalendar.domain.dto.CalendarResponseDto;
+import ru.greemlab.neirocalendar.domain.dto.DaySummaryDto;
 import ru.greemlab.neirocalendar.service.CalendarService;
 
 import java.time.LocalDate;
@@ -56,6 +57,20 @@ public class CalendarRestController extends AbstractCalendarController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Возвращает количество посещённых занятий и заработанную сумму по каждому дню за указанный период (только для attended = true).
+     */
+    @GetMapping("/daily-summary")
+    @Operation(summary = "Получить сводку по дням",
+            description = "Возвращает количество посещённых занятий и заработанную сумму по каждому дню за указанный период")
+    public ResponseEntity<List<DaySummaryDto>> getDailySummaries(
+            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
+            @RequestParam("end")   @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end
+    ) {
+        var dailySummaries = calendarService.getDailySummaries(start, end);
+        return ResponseEntity.ok(dailySummaries);
     }
 
     /**

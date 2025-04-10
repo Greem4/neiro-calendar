@@ -5,12 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.greemlab.neirocalendar.domain.dto.AttendanceRecordDto;
+import ru.greemlab.neirocalendar.domain.dto.DaySummaryDto;
 import ru.greemlab.neirocalendar.domain.entity.AttendanceRecord;
 import ru.greemlab.neirocalendar.mapper.UserAttendanceRecordMap;
 import ru.greemlab.neirocalendar.repository.AttendanceRecordRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -115,5 +120,29 @@ public class CalendarService {
             }
         }
         return sum;
+    }
+
+    /**
+     * Подсчитает посещения и сумму за день (только для attended = true)
+     */
+    @Transactional(readOnly = true)
+    public List<DaySummaryDto> getDailySummaries(LocalDate start, LocalDate end) {
+        // Получаем записи за период [start; end]
+        var records = getRecordsBetween(start, end);
+
+        // Группируем записи по дате и фильтруем только attended = true
+        var dailyRecords = records.stream()
+                .filter(rec -> Boolean.TRUE.equals(rec.attended()))
+                .collect(Collectors.groupingBy(AttendanceRecordDto::visitDate));
+
+        // Собираем результаты: для каждого дня считаем количество и заработок
+        List<DaySummaryDto> result = new ArrayList<>();
+        for (Map.Entry<LocalDate, List<AttendanceRecordDto>> entry : dailyRecords.entrySet()) {
+            var count = entry.getValue().size();
+            var earnings = count * COST_PER_ATTENDANCE;
+            result.add(new DaySummaryDto(entry.getKey(), count, earnings));
+        }
+        result.sort(Comparator.comparing(DaySummaryDto::date));
+        return result;
     }
 }
