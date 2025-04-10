@@ -7,7 +7,8 @@ import java.time.LocalDate;
  */
 public record DaySummaryDto(
         LocalDate date,
-        int attendedCount,
-        int earnings
+        int totalCount,     // всего записей
+        int attendedCount,  // пришли
+        int earnings        // сумма
 ) {
 }

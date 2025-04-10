@@ -132,15 +132,17 @@ public class CalendarService {
 
         // Группируем записи по дате и фильтруем только attended = true
         var dailyRecords = records.stream()
-                .filter(rec -> Boolean.TRUE.equals(rec.attended()))
                 .collect(Collectors.groupingBy(AttendanceRecordDto::visitDate));
 
         // Собираем результаты: для каждого дня считаем количество и заработок
         List<DaySummaryDto> result = new ArrayList<>();
         for (Map.Entry<LocalDate, List<AttendanceRecordDto>> entry : dailyRecords.entrySet()) {
-            var count = entry.getValue().size();
-            var earnings = count * COST_PER_ATTENDANCE;
-            result.add(new DaySummaryDto(entry.getKey(), count, earnings));
+            var all = entry.getValue().size();
+            var attendedCount = (int) entry.getValue().stream()
+                    .filter(r -> Boolean.TRUE.equals(r.attended()))
+                    .count();
+            var earnings = attendedCount * COST_PER_ATTENDANCE;
+            result.add(new DaySummaryDto(entry.getKey(), all, attendedCount, earnings));
         }
         result.sort(Comparator.comparing(DaySummaryDto::date));
         return result;
