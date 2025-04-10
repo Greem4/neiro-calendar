@@ -47,6 +47,21 @@ public class CalendarService {
     }
 
     /**
+     * Создать / обновить запись на 3 месяца
+     */
+    @Transactional
+    public void saveAttendanceFor3Month(String personName, LocalDate startDate) {
+        var endDate = startDate.plusMonths(3);
+        var current = startDate;
+
+        while (!current.isAfter(endDate)) {
+            var dto = new AttendanceRecordDto(null, personName, current, false);
+            saveAttendance(dto);
+            current = current.plusMonths(1);
+        }
+    }
+
+    /**
      * Отметить присутствие (attended = true) по ID
      */
     @Transactional

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.greemlab.neirocalendar.domain.dto.AttendanceRecordDto;
 import ru.greemlab.neirocalendar.domain.dto.CalendarResponseDto;
 import ru.greemlab.neirocalendar.service.CalendarService;
 
@@ -67,15 +66,14 @@ public class CalendarRestController extends AbstractCalendarController {
      * @return сообщение об успешном создании записи
      */
     @PostMapping("/add")
-    @Operation(summary = "Добавить запись посещаемости",
-            description = "Создаёт новую запись посещаемости для указанного человека на заданную дату.")
+    @Operation(summary = "Добавить записи посещаемости на 3 месяца вперёд",
+            description = "Создаёт новые записи посещаемости для указанного человека на каждый аналогичный день недели на ближайшие 3 месяца.")
     public ResponseEntity<String> addAttendance(
             @RequestParam("personName") String personName,
             @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ) {
         log.info("Добавление записи посещаемости: personName={}, date={}", personName, date);
-        var dto = new AttendanceRecordDto(null, personName, date, false);
-        calendarService.saveAttendance(dto);
+        calendarService.saveAttendanceFor3Month(personName, date);
         return ResponseEntity.ok("Запись посещаемости создана");
     }
 
