@@ -57,7 +57,7 @@ public class CalendarService {
         while (!current.isAfter(endDate)) {
             var dto = new AttendanceRecordDto(null, personName, current, false);
             saveAttendance(dto);
-            current = current.plusMonths(1);
+            current = current.plusWeeks(1);
         }
     }
 

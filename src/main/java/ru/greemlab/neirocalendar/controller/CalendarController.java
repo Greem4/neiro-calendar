@@ -5,7 +5,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import ru.greemlab.neirocalendar.domain.dto.AttendanceRecordDto;
 import ru.greemlab.neirocalendar.service.CalendarService;
 
 import java.time.LocalDate;
@@ -64,8 +63,7 @@ public class CalendarController extends AbstractCalendarController {
             @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ) {
         log.info("Add attendance: personName={}, date={}", personName, date);
-        var dto = new AttendanceRecordDto(null, personName, date, false);
-        calendarService.saveAttendance(dto);
+        calendarService.saveAttendanceFor3Month(personName, date);
         return "redirect:/calendar";
     }
 
