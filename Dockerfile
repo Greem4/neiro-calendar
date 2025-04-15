@@ -2,6 +2,7 @@ FROM gradle:8.13-jdk21-alpine AS build
 WORKDIR /app
 
 COPY settings.gradle build.gradle gradle.* gradlew ./
+RUN chmod +x gradlew
 COPY gradle ./gradle
 RUN ./gradlew --no-daemon --quiet dependencies
 COPY src ./src
