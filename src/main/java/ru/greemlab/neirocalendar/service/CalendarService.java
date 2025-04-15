@@ -56,7 +56,7 @@ public class CalendarService {
      */
     @Transactional
     public void saveAttendanceFor3Month(String personName, LocalDate startDate) {
-        var endDate = startDate.plusMonths(3);
+        var endDate = startDate.plusMonths(1);
         var current = startDate;
 
         while (!current.isAfter(endDate)) {
